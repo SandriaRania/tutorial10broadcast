@@ -15,4 +15,15 @@ maka client pertama dan kedua melihatnya juga. Hal ini bisa terjadi karena serve
 untuk terus menerus listen untuk pesan dari klien, yang dilakukan dengan melakukan loop secara concurrent sehingga ia bisa mendengar
 dari semua client, tidak hanya satu.
 
-2. 
+2. Put your explanation in the Readme.md
+
+<img src="images/Screenshot (454).png">
+<img src="images/Screenshot (455).png">
+<img src="images/Screenshot (456).png">
+<img src="images/Screenshot (457).png">
+
+Selain fungsi main di client.rs, yang perlu diubah adalah fungsi main di server.rs untuk memastikan client dan server terkoneksi
+di port yang sama. Karena keduanya mendengar port yang sama, maka mereka pasti terhubung koneksi yang sama. Baik client pertama,
+kedua, atau ketiga semua terhubung dengan server, sehingga semua client bisa mendengar pesan dari server.
+
+3. s
