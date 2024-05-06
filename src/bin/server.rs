@@ -6,14 +6,17 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::broadcast::{channel, Sender};
 use tokio_websockets::{Message, ServerBuilder, WebSocketStream};
 
+// Define a global variable to hold the client address
+static mut CLIENT_ADDR: Option<SocketAddr> = None;
+
 async fn handle_connection(
     addr: SocketAddr,
     mut ws_stream: WebSocketStream<TcpStream>,
     bcast_tx: Sender<String>,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-
+    let welcome_message = format!("{:?} Welcome to chat! Type a message", addr);
     ws_stream
-        .send(Message::text("Welcome to chat! Type a message".to_string()))
+        .send(Message::text(welcome_message))
         .await?;
     let mut bcast_rx = bcast_tx.subscribe();
 
@@ -26,7 +29,10 @@ async fn handle_connection(
                 match incoming {
                     Some(Ok(msg)) => {
                         if let Some(text) = msg.as_text() {
-                            println!("From client {addr:?} {text:?}");
+                            unsafe {
+                                CLIENT_ADDR = Some(addr);
+                            }
+                            println!("From client {addr:?}: {text:?}");
                             bcast_tx.send(text.into())?;
                         }
                     }
@@ -35,7 +41,13 @@ async fn handle_connection(
                 }
             }
             msg = bcast_rx.recv() => {
-                ws_stream.send(Message::text(msg?)).await?;
+                // Use the global variable to get the client address
+                unsafe {
+                    if let Some(client_addr) = CLIENT_ADDR {
+                        let message_with_addr = format!("{:?}: {}", client_addr, msg?);
+                        ws_stream.send(Message::text(message_with_addr)).await?;
+                    }
+                }
             }
         }
     }
@@ -50,12 +62,13 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     loop {
         let (socket, addr) = listener.accept().await?;
-        println!("New connection from {addr:?}");
+        // Set the global variable to hold the client address
+
+        println!("New connection from Rania's Komputer: {addr:?}");
         let bcast_tx = bcast_tx.clone();
         tokio::spawn(async move {
             // Wrap the raw TCP stream into a websocket.
             let ws_stream = ServerBuilder::new().accept(socket).await?;
-
             handle_connection(addr, ws_stream, bcast_tx).await
         });
     }
